@@ -1,16 +1,17 @@
 import os
 import requests
-from msal import PublicClientApplication
+from msal import ConfidentialClientApplication
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 
-# 🔐 Microsoft App Credentials
+# 🔐 Microsoft App Credentials (App Registration)
 CLIENT_ID = "354e1512-776d-47b9-9278-3dc4c5e62e66"
+CLIENT_SECRET = "772121c0-d15e-4b16-8066-0ea28a1b9828"
 TENANT_ID = "787beb16-0600-4e9e-b636-9993f8d4b23a"
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["Files.Read.All", "Sites.Read.All"]
+SCOPES = ["https://graph.microsoft.com/.default"]
 
 # 🌐 SharePoint Info
 SHAREPOINT_HOST = "kenaiusa.sharepoint.com"
@@ -22,54 +23,25 @@ EMBEDDINGS_MODEL = "sentence-transformers/all-mpnet-base-v2"
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
 
 
-from msal import PublicClientApplication, SerializableTokenCache
-
-# Persistent cache file (or use in-memory if preferred)
-CACHE_PATH = "token_cache.bin"
-
 def authenticate():
-    """Authenticate using silent token cache with a fallback to device flow."""
-    # Load or create cache
-    cache = SerializableTokenCache()
-    if os.path.exists(CACHE_PATH):
-        cache.deserialize(open(CACHE_PATH, "r").read())
-
-    app = PublicClientApplication(
-        CLIENT_ID,
+    """App-only authentication using client credentials (non-interactive)."""
+    app = ConfidentialClientApplication(
+        client_id=CLIENT_ID,
+        client_credential=CLIENT_SECRET,
         authority=AUTHORITY,
-        token_cache=cache
     )
 
-    accounts = app.get_accounts()
-    if accounts:
-        result = app.acquire_token_silent(SCOPES, account=accounts[0])
-        if result and "access_token" in result:
-            print("✅ Reused cached access token.")
-            return result["access_token"]
-
-    # Fall back to interactive login
-    flow = app.initiate_device_flow(scopes=SCOPES)
-    if "user_code" not in flow:
-        raise ValueError("❌ Failed to initiate device code flow.")
-
-    print(f"🔐 Go to: {flow['verification_uri']} and enter the code: {flow['user_code']}")
-    result = app.acquire_token_by_device_flow(flow)
+    result = app.acquire_token_for_client(scopes=SCOPES)
 
     if "access_token" not in result:
-        raise Exception(f"❌ Authentication failed: {result.get('error_description', 'No details')}")
+        raise Exception(f"❌ Failed to acquire token: {result.get('error_description')}")
 
-    print("✅ Authentication successful via device flow.")
-
-    # Save token cache
-    with open(CACHE_PATH, "w") as f:
-        f.write(cache.serialize())
-
+    print("✅ Successfully authenticated via App-Only flow.")
     return result["access_token"]
 
 
-
 def fetch_txt_files_from_sharepoint():
-    """Download .txt files from SharePoint with reverence to classic HTTP."""
+    """Download .txt files from SharePoint using Microsoft Graph API."""
     token = authenticate()
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -103,9 +75,8 @@ def fetch_txt_files_from_sharepoint():
                 content_resp.raise_for_status()
                 docs.append(Document(page_content=content_resp.text, metadata={
                     "source": item["name"],
-                    "full_content": content_resp.text  # stash the full document
-}))
-
+                    "full_content": content_resp.text
+                }))
 
         print(f"📄 Retrieved {len(docs)} .txt documents from SharePoint:")
         for doc in docs:
@@ -122,7 +93,7 @@ def fetch_txt_files_from_sharepoint():
 
 
 def index_documents():
-    """Index and store documents locally, with due ceremony."""
+    """Index and store documents locally."""
     print("📥 Beginning indexing of SharePoint documents...")
     documents = fetch_txt_files_from_sharepoint()
     if not documents:
@@ -146,9 +117,8 @@ def index_documents():
     print("✅ Indexing complete and stored locally.")
 
 
-
 def get_similar_answer_from_documents(query: str):
-    """Query local FAISS index for wisdom from the past."""
+    """Query local FAISS index for relevant answers."""
     print(f"🧐 Querying vector index for: '{query}'")
 
     if not os.path.exists("./vector_index"):
@@ -167,13 +137,10 @@ def get_similar_answer_from_documents(query: str):
     if not docs_with_scores:
         return "❓ Apologies, I couldn't find relevant information.", None
 
-    # The classic guard: reject low similarity
     for doc, score in docs_with_scores:
         if score < 0.6:
             return f"❌ Sorry, we do not offer information on '{query.lower()}' at this time.", None
         full_content = doc.metadata.get("full_content", doc.page_content)
         return f"🔍 **Answer:** {doc.page_content}", full_content
 
-
-    # Fallback message, rarely reached
     return f"❌ Sorry, we do not offer information on '{query.lower()}' at this time.", None
