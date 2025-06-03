@@ -22,9 +22,32 @@ EMBEDDINGS_MODEL = "sentence-transformers/all-mpnet-base-v2"
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
 
 
+from msal import PublicClientApplication, SerializableTokenCache
+
+# Persistent cache file (or use in-memory if preferred)
+CACHE_PATH = "token_cache.bin"
+
 def authenticate():
-    """Authenticate via Microsoft Device Code Flow with traditional patience."""
-    app = PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
+    """Authenticate using silent token cache with a fallback to device flow."""
+    # Load or create cache
+    cache = SerializableTokenCache()
+    if os.path.exists(CACHE_PATH):
+        cache.deserialize(open(CACHE_PATH, "r").read())
+
+    app = PublicClientApplication(
+        CLIENT_ID,
+        authority=AUTHORITY,
+        token_cache=cache
+    )
+
+    accounts = app.get_accounts()
+    if accounts:
+        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+        if result and "access_token" in result:
+            print("✅ Reused cached access token.")
+            return result["access_token"]
+
+    # Fall back to interactive login
     flow = app.initiate_device_flow(scopes=SCOPES)
     if "user_code" not in flow:
         raise ValueError("❌ Failed to initiate device code flow.")
@@ -35,8 +58,14 @@ def authenticate():
     if "access_token" not in result:
         raise Exception(f"❌ Authentication failed: {result.get('error_description', 'No details')}")
 
-    print("✅ Authentication successful.")
+    print("✅ Authentication successful via device flow.")
+
+    # Save token cache
+    with open(CACHE_PATH, "w") as f:
+        f.write(cache.serialize())
+
     return result["access_token"]
+
 
 
 def fetch_txt_files_from_sharepoint():
