@@ -7,16 +7,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 
 # 🔐 Microsoft App Credentials (App Registration)
-CLIENT_ID = "354e1512-776d-47b9-9278-3dc4c5e62e66"
-CLIENT_SECRET = "JwP8Q~M6qf7RLfcb.W77ucVukNEOTeAuRQhq5cZZ"
-TENANT_ID = "787beb16-0600-4e9e-b636-9993f8d4b23a"
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+TENANT_ID = os.getenv("TENANT_ID")
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["https://graph.microsoft.com/.default"]
 
 # 🌐 SharePoint Info
-SHAREPOINT_HOST = "kenaiusa.sharepoint.com"
-SITE_NAME = "ATeam"
-DOC_LIB_PATH = "SharePoint/Docs1"
+SHAREPOINT_HOST = os.getenv("SHAREPOINT_HOST")
+SITE_NAME = os.getenv("SITE_NAME")
+DOC_LIB_PATH = os.getenv("DOC_LIB_PATH")
 
 # 🔎 Embeddings
 EMBEDDINGS_MODEL = "sentence-transformers/all-mpnet-base-v2"
