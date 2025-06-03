@@ -8,7 +8,7 @@ from langchain.schema.document import Document
 
 # 🔐 Microsoft App Credentials (App Registration)
 CLIENT_ID = "354e1512-776d-47b9-9278-3dc4c5e62e66"
-CLIENT_SECRET = "772121c0-d15e-4b16-8066-0ea28a1b9828"
+CLIENT_SECRET = "JwP8Q~M6qf7RLfcb.W77ucVukNEOTeAuRQhq5cZZ"
 TENANT_ID = "787beb16-0600-4e9e-b636-9993f8d4b23a"
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["https://graph.microsoft.com/.default"]
