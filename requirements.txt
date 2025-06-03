@@ -5,7 +5,4 @@ sentence-transformers
 faiss-cpu
 msal
 requests
-pyttsx3
-SpeechRecognition
-pyaudio
 openai
