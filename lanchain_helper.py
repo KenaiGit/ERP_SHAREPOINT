@@ -138,10 +138,14 @@ def get_similar_answer_from_documents(query: str):
     if not docs_with_scores:
         return "❓ Apologies, I couldn't find relevant information.", None
 
+    best_doc = None
     for doc, score in docs_with_scores:
-        if score < 0.6:
-            return f"❌ Sorry, we do not offer information on '{query.lower()}' at this time.", None
-        full_content = doc.metadata.get("full_content", doc.page_content)
-        return f"🔍 **Answer:** {doc.page_content}", full_content
+        if score >= 0.6:
+            best_doc = doc
+            break  # optional: or pick the highest scoring one manually
+
+    if best_doc:
+        full_content = best_doc.metadata.get("full_content", best_doc.page_content)
+        return f"🔍 **Answer:** {best_doc.page_content}", full_content
 
     return f"❌ Sorry, we do not offer information on '{query.lower()}' at this time.", None
