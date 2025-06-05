@@ -4,7 +4,8 @@ from lanchain_helper import get_similar_answer_from_documents, fetch_txt_files_f
 import os
 
 # Detect if running in Streamlit Cloud
-IS_CLOUD = os.environ.get("STREAMLIT_CLOUD", "true").lower() == "true"
+IS_CLOUD = st.secrets.get("RUN_ENV", "local") == "cloud"
+
 
 # Optional imports for local voice features
 if not IS_CLOUD:
