@@ -8,16 +8,16 @@ from langchain.schema.document import Document
 import streamlit as st
 
 # 🔐 Microsoft App Credentials (App Registration)
-CLIENT_ID = st.secrets("CLIENT_ID")
-CLIENT_SECRET = st.secrets("CLIENT_SECRET")
-TENANT_ID = st.secrets("TENANT_ID")
+CLIENT_ID = st.secrets["CLIENT_ID"]
+CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
+TENANT_ID = st.secrets["TENANT_ID"]
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["https://graph.microsoft.com/.default"]
 
 # 🌐 SharePoint Info
-SHAREPOINT_HOST = st.secrets("SHAREPOINT_HOST")
-SITE_NAME = st.secrets("SITE_NAME")
-DOC_LIB_PATH = st.secrets("DOC_LIB_PATH")
+SHAREPOINT_HOST = st.secrets["SHAREPOINT_HOST"]
+SITE_NAME = st.secrets["SITE_NAME"]
+DOC_LIB_PATH = st.secrets["DOC_LIB_PATH"]
 
 # 🔎 Embeddings
 EMBEDDINGS_MODEL = "sentence-transformers/all-mpnet-base-v2"
