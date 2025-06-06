@@ -19,10 +19,10 @@ with col1:
 with col2:
     st.markdown("""
         <div style='display: flex; flex-direction: column; align-items: flex-start;'>
-            <h1 style='margin-bottom: 0;'>ShareAssist</h1>
-            <span style='font-size: 1rem; color: purple;'>Where Sharing Meets Precision</span>
+            <h1 style='margin-bottom: 0;'>Share<span style='color: #0072BC;'>Assist</span></h1>
+            <span style='font-size: 1rem; color: #ED1C24; margin-top: -1.5rem; margin-left: 7rem; font-weight: bold; font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;'>Where Sharing Meets Precision</span>
         </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True) # Note: Changed margin-left for the span, and added a span inside h1
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -76,7 +76,7 @@ if st.button("🔁"):
             st.error(f"❌ Failed to index documents: {e}")
 
 # Input section (always at the top)
-input_container = st.container() 
+input_container = st.container()
 with input_container:
     input_col, mic_col = st.columns([0.9, 0.1])
     question = None
