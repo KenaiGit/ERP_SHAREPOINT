@@ -18,9 +18,9 @@ with col1:
     st.image("kenai.png", width=100)
 with col2:
     st.markdown("""
-        <div style='display: flex; flex-direction: column; align-items: flex-start;'>
-            <h1 style='margin-bottom: 0;'>ShareAssist</h1>
-            <span style='font-size: 1rem; color: purple;'>Where Sharing Meets Precision</span>
+        <div style='display: flex; flex-direction: column; line-height: 1.2;'>
+            <h1 style='margin: 0; font-size: 2.5rem;'>ShareAssist</h1>
+            <p style='margin: 2px 0 0 75px; font-size: 1rem; color: #D22630;'>Where Sharing Meets Precision</p>
         </div>
     """, unsafe_allow_html=True)
 
