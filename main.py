@@ -6,7 +6,6 @@ import os
 # Detect if running in Streamlit Cloud
 IS_CLOUD = st.secrets.get("RUN_ENV", "local") == "cloud"
 
-
 # Optional imports for local voice features
 if not IS_CLOUD:
     import pyttsx3
@@ -14,11 +13,14 @@ if not IS_CLOUD:
     import threading
 
 # 🎨 UI Setup
-col1, col2 = st.columns([0.1, 1])
+col1, col2 = st.columns([0.15, 0.85])
 with col1:
-    st.image("kenai.png", width=50)
+    st.image("kenai.png", width=100)
 with col2:
-    st.markdown("<h1 style='display: flex; align-items: center;'>ERP-SHAREPOINT</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='display: flex; align-items: center;'>Oracle ConvoPilot</h1>", unsafe_allow_html=True)
+
+# Sidebar: Similarity threshold
+threshold = st.sidebar.slider("📏 Similarity Threshold", 0.0, 1.0, 0.6, 0.01)
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -73,30 +75,7 @@ if not st.session_state.indexed:
     else:
         st.session_state.indexed = True
 
-# Test SharePoint connection
-if st.button("🧪 Test SharePoint Connection"):
-    st.info("Testing connection to SharePoint and fetching .txt files...")
-    try:
-        documents = fetch_txt_files_from_sharepoint()
-        if documents:
-            st.success(f"✅ Successfully fetched {len(documents)} .txt file(s) from SharePoint!")
-            for doc in documents:
-                st.markdown(f"📘 **{doc.metadata['source']}** Preview:")
-                preview = doc.page_content[:300] + ("..." if len(doc.page_content) > 300 else "")
-                st.code(preview)
-        else:
-            st.warning("⚠️ No .txt files found in the specified SharePoint folder.")
-    except Exception as e:
-        st.error(f"❌ Error fetching files from SharePoint: {e}")
-
-# Display chat history
-chat_container = st.container()
-with chat_container:
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-# Input section
+# Input section (always at the top)
 input_container = st.container()
 with input_container:
     input_col, mic_col = st.columns([0.9, 0.1])
@@ -115,7 +94,7 @@ with input_container:
 # Process question
 if question:
     if st.session_state.messages and st.session_state.messages[-1]["role"] == "user" and st.session_state.messages[-1]["content"] == question:
-        pass  # already added
+        pass
     else:
         st.session_state.messages.append({"role": "user", "content": question})
 
@@ -124,16 +103,53 @@ if question:
         full_doc = None
     else:
         with st.spinner("🔍 Fetching answer..."):
-            response, full_doc = get_similar_answer_from_documents(question)
+            response, full_doc = get_similar_answer_from_documents(question, score_threshold=threshold)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
-
-    with chat_container:
-        with st.chat_message("assistant"):
-            st.markdown(response)
-
-    if full_doc:
-        with st.expander("📄 View Full Document"):
-            st.text_area("Document Content", full_doc, height=400)
-
     speak_text(response)
+
+# Display chat history (always below input)
+# Display chat history in reverse (latest at top)
+chat_container = st.container()
+with chat_container:
+    reversed_messages = list(reversed(st.session_state.messages))
+    pairs = []
+    temp_pair = []
+    for msg in reversed_messages:
+        temp_pair.append(msg)
+        if msg["role"] == "user":
+            pairs.append(temp_pair)
+            temp_pair = []
+
+    for pair in pairs:
+        for msg in reversed(pair):  # Keep assistant above user
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+
+# Show full doc if available
+if question and full_doc:
+    with st.expander("📄 View Full Document"):
+        st.text_area("Document Content", full_doc, height=400)
+        st.download_button(
+            label="💾 Download .txt",
+            data=full_doc,
+            file_name="matched_document.txt",
+            mime="text/plain"
+        )
+
+# Test SharePoint connection
+if st.button("🧪 Test SharePoint Connection"):
+    st.info("Testing connection to SharePoint and fetching .txt files...")
+    try:
+        documents = fetch_txt_files_from_sharepoint()
+        if documents:
+            st.success(f"✅ Successfully fetched {len(documents)} .txt file(s) from SharePoint!")
+            for doc in documents:
+                st.markdown(f"📘 **{doc.metadata['source']}** Preview:")
+                preview = doc.page_content[:300] + ("..." if len(doc.page_content) > 300 else "")
+                st.code(preview)
+        else:
+            st.warning("⚠️ No .txt files found in the specified SharePoint folder.")
+    except Exception as e:
+        st.error(f"❌ Error fetching files from SharePoint: {e}")
