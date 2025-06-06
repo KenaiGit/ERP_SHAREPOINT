@@ -135,17 +135,17 @@ if question and full_doc:
         )
 
 # Test SharePoint connection
-if st.button("🧪 Test SharePoint Connection"):
-    st.info("Testing connection to SharePoint and fetching .txt files...")
-    try:
-        documents = fetch_txt_files_from_sharepoint()
-        if documents:
-            st.success(f"✅ Successfully fetched {len(documents)} .txt file(s) from SharePoint!")
-            for doc in documents:
-                st.markdown(f"📘 **{doc.metadata['source']}** Preview:")
-                preview = doc.page_content[:300] + ("..." if len(doc.page_content) > 300 else "")
-                st.code(preview)
-        else:
-            st.warning("⚠️ No .txt files found in the specified SharePoint folder.")
-    except Exception as e:
-        st.error(f"❌ Error fetching files from SharePoint: {e}")
+# if st.button("🧪 Test SharePoint Connection"):
+#     st.info("Testing connection to SharePoint and fetching .txt files...")
+#     try:
+#         documents = fetch_txt_files_from_sharepoint()
+#         if documents:
+#             st.success(f"✅ Successfully fetched {len(documents)} .txt file(s) from SharePoint!")
+#             for doc in documents:
+#                 st.markdown(f"📘 **{doc.metadata['source']}** Preview:")
+#                 preview = doc.page_content[:300] + ("..." if len(doc.page_content) > 300 else "")
+#                 st.code(preview)
+#         else:
+#             st.warning("⚠️ No .txt files found in the specified SharePoint folder.")
+#     except Exception as e:
+#         st.error(f"❌ Error fetching files from SharePoint: {e}")
