@@ -126,7 +126,7 @@ def get_similar_answer_from_documents(query: str, score_threshold=0.6):
     docs_with_scores = vectorstore.similarity_search_with_score(query, k=10)
 
     if not docs_with_scores:
-        return "❓ No relevant information found.", None
+        return "Good Question, We dont have enough information to answer that.", None
 
     # Sort by score (ascending — most relevant first)
     docs_with_scores.sort(key=lambda x: x[1])
