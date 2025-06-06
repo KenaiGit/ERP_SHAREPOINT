@@ -109,29 +109,43 @@ def index_documents():
     vectorstore.save_local("./vector_index")
 
 
-def get_similar_answer_from_documents(query: str, score_threshold=1.0):
+def get_similar_answer_from_documents(query: str, score_threshold=0.6):
     if not os.path.exists("./vector_index"):
         index_documents()
 
     try:
-        vectorstore = FAISS.load_local("./vector_index", embeddings, allow_dangerous_deserialization=True)
+        vectorstore = FAISS.load_local(
+            "./vector_index", embeddings, allow_dangerous_deserialization=True
+        )
     except Exception:
         index_documents()
-        vectorstore = FAISS.load_local("./vector_index", embeddings, allow_dangerous_deserialization=True)
+        vectorstore = FAISS.load_local(
+            "./vector_index", embeddings, allow_dangerous_deserialization=True
+        )
 
-    docs_with_scores = vectorstore.similarity_search_with_score(query, k=5)
+    docs_with_scores = vectorstore.similarity_search_with_score(query, k=10)
 
     if not docs_with_scores:
         return "❓ No relevant information found.", None
 
-    best_doc = None
-    for doc, score in docs_with_scores:
-        if score >= 0.6:
-            best_doc = doc
-            break  # optional: or pick the highest scoring one manually
+    # Sort by score (ascending — most relevant first)
+    docs_with_scores.sort(key=lambda x: x[1])
+    best_doc, best_score = docs_with_scores[0]
 
-    if best_doc:
-        full_content = best_doc.metadata.get("full_content", best_doc.page_content)
-        return f"🔍 **Answer:** {best_doc.page_content}", full_content
+    if best_score > score_threshold:
+        return "❌ No relevant results found based on the threshold.", None
 
-    return "❌ No relevant results found based on the threshold.", None
+    # Get full content of the best-matched document
+    full_content = best_doc.metadata.get("full_content", "")
+    if not full_content:
+        # Fallback to combining all chunks from the same source
+        source = best_doc.metadata.get("source")
+        related_chunks = [
+            doc.page_content for doc, score in docs_with_scores
+            if doc.metadata.get("source") == source
+        ]
+        full_content = "\n\n".join(related_chunks)
+
+    return f"🔍 **Answer:**\n\n{full_content}", full_content
+
+
