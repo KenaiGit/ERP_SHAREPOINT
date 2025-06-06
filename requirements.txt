@@ -6,3 +6,5 @@ faiss-cpu
 msal
 requests
 openai
+python-docx 
+PyPDF2
