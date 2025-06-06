@@ -10,19 +10,19 @@ from io import BytesIO
 from docx import Document as DocxDocument
 import PyPDF2
 
-# 🔐 Microsoft App Credentials
+# Microsoft App Credentials
 CLIENT_ID = st.secrets["CLIENT_ID"]
 CLIENT_SECRET = st.secrets["CLIENT_SECRET"]
 TENANT_ID = st.secrets["TENANT_ID"]
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["https://graph.microsoft.com/.default"]
 
-# 🌐 SharePoint Info
+# SharePoint Info
 SHAREPOINT_HOST = st.secrets["SHAREPOINT_HOST"]
 SITE_NAME = st.secrets["SITE_NAME"]
 DOC_LIB_PATH = st.secrets["DOC_LIB_PATH"]
 
-# 🔎 Embeddings
+# Embeddings
 EMBEDDINGS_MODEL = "sentence-transformers/all-mpnet-base-v2"
 embeddings = HuggingFaceEmbeddings(model_name=EMBEDDINGS_MODEL)
 
@@ -35,8 +35,7 @@ def authenticate():
     )
     result = app.acquire_token_for_client(scopes=SCOPES)
     if "access_token" not in result:
-        raise Exception(f"❌ Failed to acquire token: {result.get('error_description')}")
-    print("✅ Successfully authenticated via App-Only flow.")
+        raise Exception(f"Authentication failed: {result.get('error_description')}")
     return result["access_token"]
 
 
@@ -44,13 +43,16 @@ def extract_text_from_docx(content: bytes) -> str:
     doc = DocxDocument(BytesIO(content))
     return "\n".join([p.text for p in doc.paragraphs])
 
+
 def extract_text_from_pdf(content: bytes) -> str:
     reader = PyPDF2.PdfReader(BytesIO(content))
     return "\n".join([page.extract_text() or "" for page in reader.pages])
 
+
 def fetch_txt_files_from_sharepoint():
     token = authenticate()
     headers = {"Authorization": f"Bearer {token}"}
+
     try:
         site_url = f"https://graph.microsoft.com/v1.0/sites/{SHAREPOINT_HOST}:/sites/{SITE_NAME}"
         site_id = requests.get(site_url, headers=headers).json()["id"]
@@ -84,19 +86,16 @@ def fetch_txt_files_from_sharepoint():
                     "full_content": text
                 }))
 
-        print(f"📄 Retrieved {len(docs)} documents from SharePoint")
         return docs
 
-    except Exception as e:
-        print(f"❌ Error fetching documents: {e}")
+    except Exception:
         return []
 
 
 def index_documents():
-    print("📥 Beginning indexing of SharePoint documents...")
     documents = fetch_txt_files_from_sharepoint()
     if not documents:
-        raise Exception("❌ No .txt files found to index.")
+        raise Exception("No supported documents found to index.")
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     source_to_full = {doc.metadata["source"]: doc.metadata["full_content"] for doc in documents}
@@ -108,34 +107,26 @@ def index_documents():
 
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local("./vector_index")
-    print("✅ Indexing complete and stored locally.")
 
 
 def get_similar_answer_from_documents(query: str, score_threshold=1.0):
-    print(f"🧐 Searching for: {query}")
-    print(f"⚙️ Using score threshold: {score_threshold}")
-
     if not os.path.exists("./vector_index"):
-        print("⚠️ Vector index missing. Initiating indexing...")
         index_documents()
 
     try:
         vectorstore = FAISS.load_local("./vector_index", embeddings, allow_dangerous_deserialization=True)
-    except Exception as e:
-        print(f"⚠️ Error loading vector index: {e}. Rebuilding index...")
+    except Exception:
         index_documents()
         vectorstore = FAISS.load_local("./vector_index", embeddings, allow_dangerous_deserialization=True)
 
     docs_with_scores = vectorstore.similarity_search_with_score(query, k=5)
 
     if not docs_with_scores:
-        return "❓ Apologies, I couldn't find relevant information.", None
+        return "❓ No relevant information found.", None
 
     for doc, score in docs_with_scores:
-        print(f"📄 {doc.metadata.get('source', 'Unknown')} — Score: {score:.4f}")
         if score < score_threshold:
             full_content = doc.metadata.get("full_content", doc.page_content)
             return f"✅ **Answer:** {doc.page_content}", full_content
 
-
-    return "❌ Sorry, no results were relevant based on the current threshold.", None
+    return "❌ No relevant results found based on the threshold.", None

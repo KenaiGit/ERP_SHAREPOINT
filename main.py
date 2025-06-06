@@ -19,9 +19,6 @@ with col1:
 with col2:
     st.markdown("<h1 style='display: flex; align-items: center;'>Oracle ConvoPilot</h1>", unsafe_allow_html=True)
 
-# Sidebar: Similarity threshold
-threshold = st.sidebar.slider("📏 Similarity Threshold", 0.0, 1.0, 0.6, 0.01)
-
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -76,7 +73,7 @@ if not st.session_state.indexed:
         st.session_state.indexed = True
 
 # Input section (always at the top)
-input_container = st.container()
+input_container = st.container() 
 with input_container:
     input_col, mic_col = st.columns([0.9, 0.1])
     question = None
@@ -103,7 +100,7 @@ if question:
         full_doc = None
     else:
         with st.spinner("🔍 Fetching answer..."):
-            response, full_doc = get_similar_answer_from_documents(question, score_threshold=threshold)
+            response, full_doc = get_similar_answer_from_documents(question)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
     speak_text(response)
@@ -125,7 +122,6 @@ with chat_container:
         for msg in reversed(pair):  # Keep assistant above user
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
-
 
 # Show full doc if available
 if question and full_doc:
